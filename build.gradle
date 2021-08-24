@@ -1,0 +1,114 @@
+apply plugin: 'java'
+apply plugin: 'eclipse-wtp'
+apply plugin: 'maven'
+
+repositories {
+    mavenCentral()
+    flatDir name: 'generatedRepository', dirs: "${rootDir}/repository/generated"
+    flatDir name: 'internalRepository', dirs: "${rootDir}/repository/internal"
+}
+
+dependencies {
+	    //email dependency
+		compile 'org.apache.velocity:velocity:1.6.2'
+		compile 'org.springframework.integration:spring-integration-mail:4.2.2.RELEASE'
+		//Junit
+		testCompile 'junit:junit:4.12'
+		compile fileTree(dir:'repository/internal', include:'*.jar')
+		//apache commons lang for string utilities
+		compile group: 'commons-lang', name: 'commons-lang', version: '2.5'
+		//slf4j, log4j and logging
+		compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.7'
+		compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.7'
+		compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.7'
+		compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21'
+		
+		//tomcat connection pool
+		compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version: '9.0.0.M13'
+		
+		//mysql driver
+		compile group: 'mysql', name: 'mysql-connector-java', version: '6.0.5'
+		
+		//internal jars
+		compile fileTree(dir:'repository/internal', include: ['*.jar'])
+		
+		//quartz for batch scheduling
+		compile group: 'org.quartz-scheduler', name: 'quartz', version: '2.2.3'
+		compile group: 'org.quartz-scheduler', name: 'quartz-jobs', version: '2.2.3'
+		
+		//ext
+		compile group: 'org.glassfish.hk2.external', name: 'aopalliance-repackaged', version: '2.4.0-b34'
+		compile group: 'org.ow2.asm', name: 'asm-debug-all', version: '5.0.4'
+		compile group: 'org.glassfish.hk2', name: 'hk2-api', version: '2.4.0-b34'
+		compile group: 'org.glassfish.hk2', name: 'hk2-locator', version: '2.4.0-b34'
+		compile group: 'org.glassfish.hk2', name: 'hk2-utils', version: '2.4.0-b34'
+		compile group: 'org.javassist', name: 'javassist', version: '3.18.1-GA'
+		compile group: 'javax.annotation', name: 'javax.annotation-api', version: '1.2'
+		compile group: 'org.glassfish.hk2.external', name: 'javax.inject', version: '2.4.0-b34'
+		compile group: 'javax.servlet', name: 'javax.servlet-api', version: '3.0.1'
+		compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.2.7'
+		compile group: 'org.glassfish.jersey.bundles.repackaged', name: 'jersey-guava', version: '2.22.2'
+		compile group: 'org.glassfish.hk2', name: 'osgi-resource-locator', version: '1.0.1'
+		compile group: 'org.osgi', name: 'org.osgi.core', version: '4.2.0'
+		compile group: 'javax.persistence', name: 'persistence-api', version: '1.0'
+		compile group: 'javax.validation', name: 'validation-api', version: '1.1.0.Final'
+		
+		// https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
+		compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.0.1'
+		
+		//this is for the alert jar which uses apache log
+		compile group: 'log4j', name: 'log4j', version: '1.2.17'
+		
+		
+	    //http client for making any API calls
+		compile group: 'com.squareup.okhttp', name: 'okhttp', version: '2.2.0'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.1' //we want gradle 3.1 to run this project
+}
+
+jar {
+	baseName = 'starLee-communication-service'
+	version = '1.0'
+	manifest{
+		attributes 'Implementation-Title': 'StarLee Communication Service',  
+		'Implementation-Version': '2.0',
+    	'Main-Class': 'com.retail.portal.trigger.CronJobTrigger'
+	}
+}
+
+artifacts {
+    archives jar
+}
+
+uploadArchives {
+    repositories {
+        add project.repositories.generatedRepository
+    }
+}
+
+task fatJar(type: Jar) {
+	exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA' 
+
+	manifest{
+		attributes 'Implementation-Title': 'StarLee Communication Service',  
+		'Implementation-Version': '1.0',
+    	'Main-Class': 'com.retail.starlee.trigger.CronJobTrigger'
+	}
+
+    baseName = 'starlee-communication-service'
+	version = '1.0'
+    into('resources'){
+        from "resources"
+    }
+    
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+task copyJar(type: Copy) {
+    from 'build/libs'
+
+    into "${rootDir}/repository/generated"
+}
